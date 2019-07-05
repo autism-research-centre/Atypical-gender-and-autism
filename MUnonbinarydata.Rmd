@@ -1,0 +1,158 @@
+---
+title: "MU_dataset analysis"
+author: "Varun Warrier"
+date: "22 April 2019"
+output: html_document
+---
+
+Load data and libraries
+```{r setup, include=FALSE}
+library(ggplot2)
+library(epitools)
+library(ggplot2)
+library(data.table)
+load("MUnonbinary.RData")
+
+
+
+MU2$education = ifelse(MU2$education_1 == "1", "5 - No high school", 0)
+MU2$education = ifelse(MU2$education_1 == "2", "4 - High school", MU2$education)
+MU2$education = ifelse(MU2$education_1 == "3", "2 - Undergraduate", MU2$education)
+MU2$education = ifelse(MU2$education_1 == "4", "1 - Postgraduate", MU2$education)
+MU2$education = ifelse(MU2$education_1 == "5", "3 - Still studying", MU2$education)
+MU2$education = ifelse(MU2$education_1 == "NA", "Missing", MU2$education)
+MU2$autism = ifelse(MU2$autism_1 == "2", 0, 1)
+MU2$binary = ifelse(MU2$sex_1 < 3, "binary", "nonbinary")
+MU2$sex2 = ifelse(MU2$sex_1 == "1", "males", 0)
+MU2$sex2 = ifelse(MU2$sex_1 == "2", "females", MU2$sex2)
+MU2$sex2 = ifelse(MU2$sex_1 > 2, "nonbinary", MU2$sex2)
+```
+
+## R Markdown
+## Autism: case-control
+
+
+###Calculates odds ratio by median-unbiased estimation (mid-p), conditional maximum likelihood estimation (Fisher), unconditional maximum likelihood estimation (Wald), and small sample adjustment (small). Confidence intervals are calculated using exact methods (mid-p and Fisher), normal approximation (Wald), and normal approximation with small sample adjustment (small). This function expects the following table struture:
+
+                    disease=0   disease=1
+    exposed=0 (ref)    n00         n01
+    exposed=1          n10         n11	
+    exposed=2          n20         n21
+    exposed=3          n30         n31
+  
+The reason for this is because each level of exposure is compared to the reference level. If you are providing a 2x2 table the following table is preferred:
+                    disease=0   disease=1
+    exposed=0 (ref)    n00         n01
+    exposed=1          n10         n11	
+  ###
+
+                    Controls      Cases
+    exposed=Males    n00         n01
+    exposed=Nonbin   n10         n11	
+
+
+```{r cars}
+autism_males = subset(MU2, autism_1 == "1" & sex_1 == "1")
+control_males = subset(MU2, autism_1 == "2" & sex_1 == "1")
+autism_females = subset(MU2, autism_1 == "1" & sex_1 == "2")
+control_females = subset(MU2, autism_1 == "2" & sex_1 == "2")
+autism_nonbinary = subset(MU2, autism_1 == "1" & binary == "nonbinary")
+control_nonbinary = subset(MU2, autism_1 == "2" & binary == "nonbinary")
+
+sex_3_way = matrix(c(nrow(control_males), nrow(autism_males), nrow(control_females), nrow(autism_females), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(sex_3_way) = c("Controls", "Cases")
+
+rownames(sex_3_way) = c("Males", "Females", "Nonbinary")
+
+chisq.test(sex_3_way)
+
+oddsratio(sex_3_way)
+
+
+
+#############
+
+
+male_nonbinary = matrix(c(nrow(control_males), nrow(autism_males), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(male_nonbinary) = c("Controls", "Cases")
+
+rownames(male_nonbinary) = c("Males", "Nonbinary")
+
+male_nonbinary
+
+chisq.test(male_nonbinary)
+oddsratio(male_nonbinary)
+
+
+##########
+
+female_nonbinary = matrix(c(nrow(control_females), nrow(autism_females), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(female_nonbinary) = c("Controls", "Cases")
+
+rownames(female_nonbinary) = c("Females", "Nonbinary")
+
+female_nonbinary
+
+chisq.test(female_nonbinary)
+oddsratio(female_nonbinary)
+
+
+
+##########
+
+binary_nonbinary = matrix(c(nrow(control_females) + nrow(control_males), nrow(autism_females) + nrow(autism_males), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(binary_nonbinary) = c("Controls", "Cases")
+
+rownames(binary_nonbinary) = c("Binary", "Nonbinary")
+
+binary_nonbinary
+
+chisq.test(binary_nonbinary)
+oddsratio(binary_nonbinary)
+
+
+
+
+```
+
+## Regression
+
+Let's do the same thing but using a regression model
+
+```{r}
+MU3 = MU2[!(MU2$education_1=="#NULL!"),]
+
+MU3 = MU3[!(MU3$age_1=="#NULL!"),]
+MU3$age_1 = as.numeric(as.factor(MU3$age_1))
+
+summary(glm(autism ~ binary + age_1 + education, data = MU3, family = "binomial"))
+summary(glm(autism ~ as.factor(sex_1) + age_1 + education, data = MU3, family = "binomial"))
+summary(glm(autism ~ relevel(as.factor(sex2), ref = "nonbinary") + age_1 + education, data = MU3, family = "binomial"))
+
+
+```
+
+
+
+Create some plots
+```{R, Plot}
+
+ggplot(MU2, aes(x=as.numeric(as.character(age_1)), colour=sex2)) +   geom_density() + theme_classic() + xlab("Age")
+
+summary(aov(as.numeric(as.character(age_1)) ~ sex2, data = MU2))
+
+summary_edu = setDT(MU2)[, list(count=.N) , list(sex2, education)]
+
+summary_edu
+
+
+ggplot(MU2, aes(sex2, fill = education)) + geom_bar(position = 'fill') + theme_classic()
+
+
+```
+
+

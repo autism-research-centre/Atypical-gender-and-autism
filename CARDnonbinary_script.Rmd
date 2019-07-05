@@ -1,0 +1,227 @@
+---
+title: "Non_binary_CARD"
+author: "Varun Warrier"
+date: "21 April 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Libraries and read in the data
+```{r setup, include=FALSE}
+library(ggplot2)
+library(epitools)
+library(ggplot2)
+library(data.table)
+load("IMAGEnonbinary.RData")
+```
+
+## Autism: case-control
+
+
+###Calculates odds ratio by median-unbiased estimation (mid-p), conditional maximum likelihood estimation (Fisher), unconditional maximum likelihood estimation (Wald), and small sample adjustment (small). Confidence intervals are calculated using exact methods (mid-p and Fisher), normal approximation (Wald), and normal approximation with small sample adjustment (small). This function expects the following table struture:
+
+                    disease=0   disease=1
+    exposed=0 (ref)    n00         n01
+    exposed=1          n10         n11	
+    exposed=2          n20         n21
+    exposed=3          n30         n31
+  
+The reason for this is because each level of exposure is compared to the reference level. If you are providing a 2x2 table the following table is preferred:
+                    disease=0   disease=1
+    exposed=0 (ref)    n00         n01
+    exposed=1          n10         n11	
+  ###
+
+                    Controls      Cases
+    exposed=Males    n00         n01
+    exposed=Nonbin   n10         n11	
+
+
+
+
+```{r case-control chi-square}
+
+CARD2$key = ifelse(CARD2$Gender_final == "Male" & CARD2$ASCDiagnosis == "Y" , "autism_males", "other")
+CARD2$key = ifelse(CARD2$Gender_final == "Male" & CARD2$ASCDiagnosis == "N" , "control_males", CARD2$key)
+CARD2$key = ifelse(CARD2$Gender_final == "Female" & CARD2$ASCDiagnosis == "N" , "control_females", CARD2$key)
+CARD2$key = ifelse(CARD2$Gender_final == "Female" & CARD2$ASCDiagnosis == "Y" , "autism_females", CARD2$key)
+CARD2$key = ifelse(CARD2$Gender_final == "Nonbinary" & CARD2$ASCDiagnosis == "Y" , "autism_nonbinary", CARD2$key)
+CARD2$key = ifelse(CARD2$Gender_final == "Nonbinary" & CARD2$ASCDiagnosis == "N" , "control_nonbinary", CARD2$key)
+
+autism_males = subset(CARD2, key == "autism_males")
+autism_females = subset(CARD2, key == "autism_females")
+autism_nonbinary = subset(CARD2, key == "autism_nonbinary")
+control_males = subset(CARD2, key == "control_males")
+control_females = subset(CARD2, key == "control_females")
+control_nonbinary = subset(CARD2, key == "control_nonbinary")
+
+sex_3_way = matrix(c(nrow(control_males), nrow(autism_males), nrow(control_females), nrow(autism_females), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(sex_3_way) = c("Controls", "Cases")
+
+rownames(sex_3_way) = c("Males", "Females", "Nonbinary")
+
+chisq.test(sex_3_way)
+
+oddsratio(sex_3_way)
+
+
+
+#############
+
+
+male_nonbinary = matrix(c(nrow(control_males), nrow(autism_males), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(male_nonbinary) = c("Controls", "Cases")
+
+rownames(male_nonbinary) = c("Males", "Nonbinary")
+
+male_nonbinary
+
+chisq.test(male_nonbinary)
+oddsratio(male_nonbinary)
+
+
+##########
+
+female_nonbinary = matrix(c(nrow(control_females), nrow(autism_females), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(female_nonbinary) = c("Controls", "Cases")
+
+rownames(female_nonbinary) = c("Females", "Nonbinary")
+
+female_nonbinary
+
+chisq.test(female_nonbinary)
+oddsratio(female_nonbinary)
+
+
+
+##########
+
+binary_nonbinary = matrix(c(nrow(control_females) + nrow(control_males), nrow(autism_females) + nrow(autism_males), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(binary_nonbinary) = c("Controls", "Cases")
+
+rownames(binary_nonbinary) = c("Binary", "Nonbinary")
+
+binary_nonbinary
+
+chisq.test(binary_nonbinary)
+oddsratio(binary_nonbinary)
+
+
+### Regressing age effects
+
+CARD2$autism2 = ifelse(CARD2$ASCDiagnosis == "Y", 1, 0)
+
+summary(glm(autism2 ~ Gender_3 + scale(AQ_Age) + Education_recode + Category, data = CARD2, family = "binomial"))
+summary(glm(autism2 ~ relevel(as.factor(Gender_final), ref = "Nonbinary") + scale(AQ_Age) + Education_recode + Category, data = CARD2, family = "binomial" ))
+
+
+
+```
+
+
+
+## Let's do suspected autism now
+
+```{R, suspected autism}
+
+####Suspected autism
+
+
+suspectall = matrix(c(589, 216, 490, 97, 10, 16 ), ncol = 2, byrow = TRUE)
+
+colnames(suspectall) = c("Controls", "Autism_suspect")
+
+rownames(suspectall) = c("Males", "Females", "Nonbinary")
+
+suspectall
+
+chisq.test(suspectall)
+
+oddsratio(suspectall)
+
+
+### Suspect_males
+
+suspectall_males = matrix(c(589, 216,  10, 16 ), ncol = 2, byrow = TRUE)
+
+colnames(suspectall_males) = c("Controls", "Autism_suspect")
+
+rownames(suspectall_males) = c("Males",  "Nonbinary")
+
+suspectall_males
+
+chisq.test(suspectall_males)
+
+oddsratio(suspectall_males)
+
+
+
+### Suspect_females
+
+suspectall_females = matrix(c(490, 97,  10, 16 ), ncol = 2, byrow = TRUE)
+
+colnames(suspectall_females) = c("Controls", "Autism_suspect")
+
+rownames(suspectall_females) = c("Females",  "Nonbinary")
+
+suspectall_females
+
+chisq.test(suspectall_females)
+
+oddsratio(suspectall_females)
+
+
+
+### Suspect_binary
+
+suspectall_binary = matrix(c(490 + 589 , 97 + 216,  10, 16 ), ncol = 2, byrow = TRUE)
+
+colnames(suspectall_binary) = c("Controls", "Autism_suspect")
+
+rownames(suspectall_binary) = c("Binary",  "Nonbinary")
+
+suspectall_binary
+
+chisq.test(suspectall_binary)
+
+oddsratio(suspectall_binary)
+
+
+
+```
+
+## Autistic traits regression
+
+```{R, Autistic traits}
+
+summary(lm(scale(AQ_TestScore) ~ as.factor(ASCDiagnosis) + Education_recode + Gender_final + scale(AQ_Age) + Category, data = CARD2))
+
+summary(lm(scale(AQ_TestScore) ~ as.factor(ASCDiagnosis) + Education_recode + Gender_3 + scale(AQ_Age) + Category, data = CARD2))
+
+
+```
+
+## Make plot
+
+```{R, Plot}
+
+ggplot(CARD2, aes(x=AQ_TestScore, colour=key)) +   geom_density() + theme_classic() + xlab("AQ_full")
+
+
+summary_edu = setDT(CARD2)[, list(count=.N) , list(Gender_final, Education_recode)]
+
+summary_edu
+
+ggplot(CARD2, aes(Gender_final, fill = Education_recode)) + geom_bar(position = 'fill') + theme_classic()
+
+ggplot(CARD2, aes(x=AQ_Age, colour=Gender_final)) +   geom_density() + theme_classic() + xlab("AQ_full")
+
+
+
+```
+

@@ -1,0 +1,100 @@
+---
+title: "MU_nonbinary_otherpsych"
+author: "Varun Warrier"
+date: "31st May 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# Read file, libraries and convert data
+
+```{r}
+library(ggplot2)
+library(epitools)
+library(ggplot2)
+library(data.table)
+load("MU_otherpsych.RData")
+
+data1$education = ifelse(data1$education_1 == "1", "5 - No high school", 0)
+data1$education = ifelse(data1$education_1 == "2", "4 - High school", data1$education)
+data1$education = ifelse(data1$education_1 == "3", "2 - Undergraduate", data1$education)
+data1$education = ifelse(data1$education_1 == "4", "1 - Postgraduate", data1$education)
+data1$education = ifelse(data1$education_1 == "5", "3 - Still studying", data1$education)
+data1$education = ifelse(data1$education_1 == "NA", "Missing", data1$education)
+data1$autism = ifelse(data1$autism_yesno == "2", 0, 1)
+data1$binary = ifelse(data1$sex_1 < 3, "binary", "nonbinary")
+data1$sex2 = ifelse(data1$sex_1 == "1", "males", 0)
+data1$sex2 = ifelse(data1$sex_1 == "2", "females", data1$sex2)
+data1$sex2 = ifelse(data1$sex_1 > 2, "nonbinary", data1$sex2)
+data2 = subset(data1, autism == 0)
+
+
+```
+
+## Regression - ADHD
+```{r}
+summary(glm(adhd_dichotomous ~ as.factor(binary), data = data1, family = binomial))
+summary(glm(adhd_dichotomous ~ age_1 + education + as.factor(binary), data = data1, family = binomial))
+summary(glm(adhd_dichotomous ~ age_1 + education + as.factor(binary), data = data2, family = binomial))
+
+
+summary(glm(adhd_dichotomous ~ relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(adhd_dichotomous ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(adhd_dichotomous ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data2, family = binomial))
+
+```
+
+## Regression - depression
+```{r}
+summary(glm(dep_binary ~ as.factor(binary), data = data1, family = binomial))
+summary(glm(dep_binary ~ age_1 + education + as.factor(binary), data = data1, family = binomial))
+summary(glm(dep_binary ~ age_1 + education + as.factor(binary), data = data2, family = binomial))
+
+
+summary(glm(dep_binary ~ relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(dep_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(dep_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data2, family = binomial))
+```
+
+
+##Regression - bipolar
+
+```{r}
+summary(glm(bipolar_binary ~ as.factor(binary), data = data1, family = binomial))
+summary(glm(bipolar_binary ~ age_1 + education + as.factor(binary), data = data1, family = binomial))
+summary(glm(bipolar_binary ~ age_1 + education + as.factor(binary), data = data2, family = binomial))
+
+
+summary(glm(bipolar_binary ~ relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(bipolar_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(bipolar_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data2, family = binomial))
+
+```
+
+##Regression - ocd
+
+```{r}
+summary(glm(ocd_binary ~ as.factor(binary), data = data1, family = binomial))
+summary(glm(ocd_binary ~ age_1 + education + as.factor(binary), data = data1, family = binomial))
+summary(glm(ocd_binary ~ age_1 + education + as.factor(binary), data = data2, family = binomial))
+
+
+summary(glm(ocd_binary ~ relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(ocd_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(ocd_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data2, family = binomial))
+```
+
+##Regression - scz
+
+```{r}
+summary(glm(scz_binary ~ as.factor(binary), data = data1, family = binomial))
+summary(glm(scz_binary ~ age_1 + education + as.factor(binary), data = data1, family = binomial))
+summary(glm(scz_binary ~ age_1 + education + as.factor(binary), data = data2, family = binomial))
+
+
+summary(glm(scz_binary ~ relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(scz_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data1, family = binomial))
+summary(glm(scz_binary ~ age_1 + education + relevel(as.factor(sex2), ref = "nonbinary"), data = data2, family = binomial))
+
+```

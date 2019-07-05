@@ -1,0 +1,149 @@
+---
+title: "APHS_nonbinary"
+author: "Varun Warrier"
+date: "30 May 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(ggplot2)
+library(epitools)
+library(ggplot2)
+library(data.table)
+library(logistf)
+load("APHS.RData")
+```
+
+## Autism: case-control
+
+
+###Calculates odds ratio by median-unbiased estimation (mid-p), conditional maximum likelihood estimation (Fisher), unconditional maximum likelihood estimation (Wald), and small sample adjustment (small). Confidence intervals are calculated using exact methods (mid-p and Fisher), normal approximation (Wald), and normal approximation with small sample adjustment (small). This function expects the following table struture:
+
+                    disease=0   disease=1
+    exposed=0 (ref)    n00         n01
+    exposed=1          n10         n11	
+    exposed=2          n20         n21
+    exposed=3          n30         n31
+  
+The reason for this is because each level of exposure is compared to the reference level. If you are providing a 2x2 table the following table is preferred:
+                    disease=0   disease=1
+    exposed=0 (ref)    n00         n01
+    exposed=1          n10         n11	
+  ###
+
+                    Controls      Cases
+    exposed=Males    n00         n01
+    exposed=Nonbin   n10         n11	
+
+
+
+
+```{r case-control chi-square}
+males = subset(APHS, Binary_nonbinary == "Binary_Male")
+autism_males = subset(males, Autism.Y.N == "1")
+control_males = subset(males, Autism.Y.N == "0")
+
+females = subset(APHS, Binary_nonbinary == "Binary_Female")
+autism_females = subset(females, Autism.Y.N == "1")
+control_females = subset(females, Autism.Y.N == "0")
+
+nonbinary = subset(APHS, Binary_nonbinary == "Nonbinary")
+autism_nonbinary = subset(nonbinary, Autism.Y.N == "1")
+control_nonbinary = subset(nonbinary, Autism.Y.N == "0")
+
+
+
+sex_3_way = matrix(c(nrow(control_males), nrow(autism_males), nrow(control_females), nrow(autism_females), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(sex_3_way) = c("Controls", "Cases")
+
+rownames(sex_3_way) = c("Males", "Females", "Nonbinary")
+
+chisq.test(sex_3_way)
+
+
+#############
+
+
+male_nonbinary = matrix(c(nrow(control_males), nrow(autism_males), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(male_nonbinary) = c("Controls", "Cases")
+
+rownames(male_nonbinary) = c("Males", "Nonbinary")
+
+male_nonbinary
+
+chisq.test(male_nonbinary)
+oddsratio(male_nonbinary)
+
+
+##########
+
+female_nonbinary = matrix(c(nrow(control_females), nrow(autism_females), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(female_nonbinary) = c("Controls", "Cases")
+
+rownames(female_nonbinary) = c("Females", "Nonbinary")
+
+female_nonbinary
+
+chisq.test(female_nonbinary)
+oddsratio(female_nonbinary)
+
+
+
+##########
+
+binary_nonbinary = matrix(c(nrow(control_females) + nrow(control_males), nrow(autism_females) + nrow(autism_males), nrow(control_nonbinary), nrow(autism_nonbinary) ), ncol = 2, byrow = TRUE)
+
+colnames(binary_nonbinary) = c("Controls", "Cases")
+
+rownames(binary_nonbinary) = c("Binary", "Nonbinary")
+
+binary_nonbinary
+
+chisq.test(binary_nonbinary)
+oddsratio(binary_nonbinary)
+
+
+### Regressing age effects
+
+
+summary(glm(Autism.Y.N ~  relevel(as.factor(Binary_nonbinary), ref = "Nonbinary") + scale(Age) + Education, data = APHS, family = "binomial"))
+
+summary(glm(Autism.Y.N ~  binary2 + scale(Age) + Education, data = APHS, family = "binomial"))
+
+
+
+```
+
+
+
+## Create plots
+
+```{R, Plot}
+
+ggplot(APHS, aes(x=Age, colour=Binary_nonbinary)) +   geom_density() + theme_classic() + xlab("Age")
+
+summary(aov(Age ~ Binary_nonbinary, data = APHS))
+
+
+APHS$edu2 = ifelse(APHS$Education == "University Postgraduate level qualifications (MA, MSc, PhD, Certificate, etc.)", "1 - Postgraduate", 0)
+APHS$edu2 = ifelse(APHS$Education == "University Undergraduate level qualifications (BA, BSc, etc.)", "2 - Undergraduate", APHS$edu2)
+APHS$edu2 = ifelse(APHS$Education == "Further vocational qualifications", "3 - Vocational", APHS$edu2)
+APHS$edu2 = ifelse(APHS$Education == "Secondary School/ High School level qualifications", "4 - Highschool", APHS$edu2)
+APHS$edu2 = ifelse(APHS$Education == "No formal qualifications", "5 - No Highschool", APHS$edu2)
+APHS$edu2 = ifelse(APHS$Education == "", "Missing", APHS$edu2)
+
+summary_edu = setDT(APHS)[, list(count=.N) , list(Binary_nonbinary, edu2)]
+
+summary_edu
+
+
+ggplot(APHS, aes(Binary_nonbinary, fill = edu2)) + geom_bar(position = 'fill') + theme_classic()
+
+
+```
+
